@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+    <id>org.netpw.netpw.desktop</id>
+    <metadata_license>CC0-1.0</metadata_license>
+    <project_license>GPL-3.0-or-later</project_license>
+    <name>netpw</name>
+    <summary>PipeWire network socket virtual endpoint</summary>
+    <description>
+        <p>
+            A network socket acting as a source or sink for PipeWire streams.
+        </p>
+    </description>
+    <launchable type="desktop-id">org.netpw.netpw.desktop</launchable>
+    <screenshots>
+        <screenshot type="default">
+            <image>https://amini-allight.org/netpw/static/img/example.png</image>
+        </screenshot>
+    </screenshots>
+    <keywords>
+        <keyword>PipeWire</keyword>
+        <keyword>video</keyword>
+        <keyword>audio</keyword>
+        <keyword>MIDI</keyword>
+        <keyword>network</keyword>
+    </keywords>
+    <url type="homepage">https://amini-allight.org/netpw</url>
+    <url type="bugtracker">https://github.com/amini-allight/netpw/issues</url>
+    <provides>
+        <binary>netpw</binary>
+    </provides>
+    <developer_name>Amini Allight</developer_name>
+    <update_contact>amini.allight@protonmail.com</update_contact>
+    <releases>
+    </releases>
+    <content_rating type="oars-1.1"/>
+</component>

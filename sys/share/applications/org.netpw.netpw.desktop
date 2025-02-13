@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=netpw
+GenericName=PipeWire Network Socket
+Comment=PipeWire network socket virtual endpoint
+Icon=org.netpw.netpw
+Exec=netpw
+Terminal=true
+Categories=AudioVideo;Utility;ConsoleOnly;

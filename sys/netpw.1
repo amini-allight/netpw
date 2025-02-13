@@ -1,0 +1,45 @@
+.TH man 1 "12 Feb 2025" "0.1.0" "netpw man page"
+.SH NAME
+netpw \- PipeWire network socket virtual endpoint.
+.SH SYNOPSIS
+netpw server|client input|output [options...]
+.SH DESCRIPTION
+netpw is a network socket acting as a source or sink for PipeWire streams.
+.SH OPTIONS
+.TP
+.B \-h value, \-\-host value
+Specify the network address to bind to or connect to.
+.TP
+.B \-p value, \-\-port value
+Specify the network port to bind to or connect to.
+.TP
+.B \-\-ca value
+Specify the X.509 certificate authority certificate to use for TLS.
+.TP
+.B \-\-privkey value
+Specify the RSA private key to use for TLS.
+.TP
+.B \-\-cert value
+Specify the X.509 certificate to use for TLS.
+.TP
+.B \-f value, \-\-frequency value
+Specify the audio sampling frequency.
+.TP
+.B \-c value, \-\-channels value
+Specify the audio channel count.
+.TP
+.B \-d value, \-\-depth value
+Specify the audio sample depth in bits.
+.TP
+.B \-b value, \-\-buffer value
+Specify the audio buffer in samples per channel.
+.SH BUGS
+Please report all bugs at https://github.com/amini-allight/netpw/issues
+.SH WWW
+https://amini-allight.org/netpw
+.SH AUTHOR
+Amini Allight <amini.allight@protonmail.com>
+.SH COPYRIGHT
+Copyright (C) 2025 Amini Allight
+
+netpw is free software; you can redistribute it and/or modify it under the terms of the GPL version 3 or later.

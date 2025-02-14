@@ -22,6 +22,7 @@ along with netpw. If not, see <https://www.gnu.org/licenses/>.
 #include "client.h"
 #include "audio_input.h"
 #include "audio_output.h"
+#include "coding.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -32,6 +33,7 @@ static struct server* server = NULL;
 static struct client* client = NULL;
 static struct audio_input* audio_input = NULL;
 static struct audio_output* audio_output = NULL;
+static struct coding_context* coding_ctx = NULL;
 
 static const char* host;
 static unsigned short port = 8000;
@@ -42,9 +44,41 @@ static int frequency = 48000;
 static int channels = 2;
 static int depth = 16;
 static int buffer_size = 512;
+static int coding_argc = 0;
+static char** coding_argv = NULL;
+static int ready = 0;
 
-static void on_audio_input(const unsigned char* data, int size)
+static void on_audio_read(const unsigned char* data, int size)
 {
+    if (!ready)
+    {
+        return;
+    }
+
+    if (coding_ctx)
+    {
+        coding_send(coding_ctx, data, size);
+    }
+    else if (audio_output)
+    {
+        if (server)
+        {
+            server_send(server, data, size);
+        }
+        else if (client)
+        {
+            client_send(client, data, size);
+        }
+    }
+}
+
+static void on_compressor_read(const unsigned char* data, int size)
+{
+    if (!ready)
+    {
+        return;
+    }
+
     if (server)
     {
         server_send(server, data, size);
@@ -55,9 +89,31 @@ static void on_audio_input(const unsigned char* data, int size)
     }
 }
 
-static void on_network_input(const unsigned char* data, int size)
+static void on_decompressor_read(const unsigned char* data, int size)
 {
+    if (!ready)
+    {
+        return;
+    }
+
     if (audio_output)
+    {
+        audio_output_send(audio_output, data, size);
+    }
+}
+
+static void on_network_read(const unsigned char* data, int size)
+{
+    if (!ready)
+    {
+        return;
+    }
+
+    if (coding_ctx)
+    {
+        coding_send(coding_ctx, data, size);
+    }
+    else if (audio_output)
     {
         audio_output_send(audio_output, data, size);
     }
@@ -123,6 +179,17 @@ static void parse_arguments(int argc, char** argv)
             break;
         }
     }
+
+    int i;
+    for (i = 0; i < argc; i++)
+    {
+        if (strcmp(argv[i], "--") == 0)
+        {
+            coding_argc = argc - (i + 1);
+            coding_argv = argv + (i + 1);
+            break;
+        }
+    }
 }
 
 static void display_help()
@@ -131,7 +198,7 @@ static void display_help()
     fprintf(stderr, "Copyright 2025 Amini Allight\n");
     fprintf(stderr, "This program comes with ABSOLUTELY NO WARRANTY; This is free software, and you are welcome to redistribute it under certain conditions. See the included license for further details.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "usage: netpw server|client input|output [options]\n");
+    fprintf(stderr, "usage: netpw server|client input|output [options...] [-- coding-options...]\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "-h value\t--host value\t\tSpecify the network address to bind to or connect to.\n");
     fprintf(stderr, "-p value\t--port value\t\tSpecify the network port to bind to or connect to.\n");
@@ -148,21 +215,45 @@ static void display_help()
 
 static void setup_server()
 {
-    server = server_init(host, port, ca, cert, privkey, on_network_input);
+    server = server_init(host, port, ca, cert, privkey, on_network_read);
 }
 
 static void setup_client()
 {
-    client = client_init(host, port, ca, cert, privkey, on_network_input);
+    client = client_init(host, port, ca, cert, privkey, on_network_read);
 }
 
 static void setup_audio_input()
 {
-    audio_input = audio_input_init(frequency, channels, depth, buffer_size, on_audio_input);
+    if (coding_argv)
+    {
+        coding_ctx = coding_init_audio_encoder(
+            frequency,
+            channels,
+            depth,
+            coding_argc,
+            coding_argv,
+            on_compressor_read
+        );
+    }
+
+    audio_input = audio_input_init(frequency, channels, depth, buffer_size, on_audio_read);
 }
 
 static void setup_audio_output()
 {
+    if (coding_argv)
+    {
+        coding_ctx = coding_init_audio_decoder(
+            frequency,
+            channels,
+            depth,
+            coding_argc,
+            coding_argv,
+            on_decompressor_read
+        );
+    }
+
     audio_output = audio_output_init(frequency, channels, depth, buffer_size);
 }
 
@@ -183,17 +274,21 @@ int main(int argc, char** argv)
         {
             setup_audio_input();
 
+            ready = 1;
             audio_input_run(audio_input);
 
             audio_input_destroy(audio_input);
+            coding_destroy(coding_ctx);
         }
         else if (strcmp(argv[2], "output") == 0)
         {
             setup_audio_output();
 
+            ready = 1;
             audio_output_run(audio_output);
 
             audio_output_destroy(audio_output);
+            coding_destroy(coding_ctx);
         }
         else
         {
@@ -213,17 +308,21 @@ int main(int argc, char** argv)
         {
             setup_audio_input();
 
+            ready = 1;
             audio_input_run(audio_input);
 
             audio_input_destroy(audio_input);
+            coding_destroy(coding_ctx);
         }
         else if (strcmp(argv[2], "output") == 0)
         {
             setup_audio_output();
 
+            ready = 1;
             audio_output_run(audio_output);
 
             audio_output_destroy(audio_output);
+            coding_destroy(coding_ctx);
         }
         else
         {

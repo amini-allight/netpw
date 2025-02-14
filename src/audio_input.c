@@ -73,7 +73,7 @@ struct audio_input* audio_input_init(int frequency, int channels, int depth, int
     struct spa_pod_builder builder = SPA_POD_BUILDER_INIT(buffer, sizeof(buffer));
 
     struct spa_audio_info_raw info = {
-        .format = identify_format(depth),
+        .format = identify_spa_format(depth),
         .rate = frequency,
         .channels = channels
     };

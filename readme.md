@@ -2,7 +2,7 @@
 
 A network socket acting as a source or sink for PipeWire streams.
 
-![](doc/icon.png)
+<img src="doc/icon.png" width="256"/>
 
 ## Dependencies
 

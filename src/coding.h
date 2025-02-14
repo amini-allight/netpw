@@ -16,22 +16,31 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with netpw. If not, see <https://www.gnu.org/licenses/>.
 */
-#ifndef NETPW_TOOLS_H
-#define NETPW_TOOLS_H
+#ifndef NETPW_COMPRESSION_H
+#define NETPW_COMPRESSION_H
 
-char* get_file(const char* path);
+#include "callback.h"
 
-int min(int a, int b);
-int max(int a, int b);
+struct coding_context;
 
-int identify_spa_format(int bit_depth);
+struct coding_context* coding_init_audio_encoder(
+    int frequency,
+    int channels,
+    int depth,
+    int encoder_argc,
+    char** encoder_argv,
+    on_data_callback callback
+);
+struct coding_context* coding_init_audio_decoder(
+    int frequency,
+    int channels,
+    int depth,
+    int encoder_argc,
+    char** encoder_argv,
+    on_data_callback callback
+);
+void coding_destroy(struct coding_context* ctx);
 
-const char* identify_ffmpeg_format(int bit_depth);
-
-/* allocs and returns ownership */
-char* concat_strings(const char* a, const char* b);
-
-/* allocs and returns ownership */
-char* int_to_string(int x);
+void coding_send(struct coding_context* ctx, const unsigned char* data, int size);
 
 #endif

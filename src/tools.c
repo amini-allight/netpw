@@ -21,6 +21,7 @@ along with netpw. If not, see <https://www.gnu.org/licenses/>.
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <spa/param/audio/raw.h>
 
 char* get_file(const char* path)
@@ -55,7 +56,7 @@ int max(int a, int b)
     return a > b ? a : b;
 }
 
-int identify_format(int bit_depth)
+int identify_spa_format(int bit_depth)
 {
     switch (bit_depth)
     {
@@ -71,4 +72,44 @@ int identify_format(int bit_depth)
     case 32 :
         return SPA_AUDIO_FORMAT_S32;
     }
+}
+
+const char* identify_ffmpeg_format(int bit_depth)
+{
+    switch (bit_depth)
+    {
+    default :
+        fprintf(stderr, "unsupported bit depth: %i\n", bit_depth);
+        exit(1);
+    case 8 :
+        return "s8";
+    case 16 :
+        return "s16le";
+    case 24 :
+        return "s24le";
+    case 32 :
+        return "s32le";
+    }
+}
+
+char* concat_strings(const char* a, const char* b)
+{
+    int size = strlen(a) + strlen(b) + 1;
+    char* result = malloc(size);
+
+    memcpy(result, a, strlen(a));
+    memcpy(result + strlen(a), b, strlen(b));
+    result[size - 1] = 0;
+
+    return result;
+}
+
+char* int_to_string(int x)
+{
+    int size = snprintf(NULL, 0, "%i", x) + 1;
+
+    char* result = malloc(size);
+    snprintf(result, size, "%i", x);
+
+    return result;
 }

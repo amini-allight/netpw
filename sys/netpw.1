@@ -1,8 +1,8 @@
-.TH man 1 "12 Feb 2025" "0.1.0" "netpw man page"
+.TH man 1 "13 Feb 2025" "0.1.0" "netpw man page"
 .SH NAME
 netpw \- PipeWire network socket virtual endpoint.
 .SH SYNOPSIS
-netpw server|client input|output [options...]
+netpw server|client input|output [options...] [-- coding-options...]
 .SH DESCRIPTION
 netpw is a network socket acting as a source or sink for PipeWire streams.
 .SH OPTIONS
@@ -33,6 +33,8 @@ Specify the audio sample depth in bits.
 .TP
 .B \-b value, \-\-buffer value
 Specify the audio buffer in samples per channel.
+.B \-\-
+Options following the special \-\- character are passed to the FFmpeg instance used for encoding or decoding.
 .SH BUGS
 Please report all bugs at https://github.com/amini-allight/netpw/issues
 .SH WWW

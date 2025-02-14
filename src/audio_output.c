@@ -83,7 +83,7 @@ struct audio_output* audio_output_init(int frequency, int channels, int depth, i
     struct spa_pod_builder builder = SPA_POD_BUILDER_INIT(queue, sizeof(queue));
 
     struct spa_audio_info_raw info = {
-        .format = identify_format(depth),
+        .format = identify_spa_format(depth),
         .rate = frequency,
         .channels = channels
     };

@@ -17,12 +17,13 @@ You should have received a copy of the GNU General Public License
 along with netpw. If not, see <https://www.gnu.org/licenses/>.
 */
 #include "constants.h"
-#include "error_handling.h"
+#include "tools.h"
 #include "server.h"
 #include "client.h"
 #include "audio_input.h"
 #include "audio_output.h"
 #include "coding.h"
+#include "cryptography.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -59,7 +60,7 @@ static void on_audio_read(const unsigned char* data, int size)
     {
         coding_send(coding_ctx, data, size);
     }
-    else if (audio_output)
+    else
     {
         if (server)
         {
@@ -157,13 +158,13 @@ static void parse_arguments(int argc, char** argv)
             port = atoi(optarg);
             break;
         case 300 :
-            ca = optarg;
+            ca = get_file(optarg);
             break;
         case 301 :
-            privkey = optarg;
+            privkey = get_file(optarg);
             break;
         case 302 :
-            cert = optarg;
+            cert = get_file(optarg);
             break;
         case 'f' :
             frequency = atoi(optarg);
@@ -213,8 +214,27 @@ static void display_help()
     fprintf(stderr, "-b value\t--buffer value\t\tSpecify the audio buffer in samples per channel.\n");
 }
 
+static void auto_generate_encryption_resources()
+{
+    printf("generating encryption keys.\n");
+    char* public_key;
+    char* private_key;
+    generate_rsa_key_pair(&public_key, &private_key);
+    char* certificate;
+    x509_certificate_from_private_key(private_key, &certificate);
+    free(public_key);
+
+    privkey = private_key;
+    cert = certificate;
+}
+
 static void setup_server()
 {
+    if (cert == NULL || privkey == NULL)
+    {
+        auto_generate_encryption_resources();
+    }
+
     server = server_init(host, port, ca, cert, privkey, on_network_read);
 }
 
@@ -278,7 +298,10 @@ int main(int argc, char** argv)
             audio_input_run(audio_input);
 
             audio_input_destroy(audio_input);
-            coding_destroy(coding_ctx);
+            if (coding_ctx)
+            {
+                coding_destroy(coding_ctx);
+            }
         }
         else if (strcmp(argv[2], "output") == 0)
         {
@@ -288,7 +311,10 @@ int main(int argc, char** argv)
             audio_output_run(audio_output);
 
             audio_output_destroy(audio_output);
-            coding_destroy(coding_ctx);
+            if (coding_ctx)
+            {
+                coding_destroy(coding_ctx);
+            }
         }
         else
         {
@@ -312,7 +338,10 @@ int main(int argc, char** argv)
             audio_input_run(audio_input);
 
             audio_input_destroy(audio_input);
-            coding_destroy(coding_ctx);
+            if (coding_ctx)
+            {
+                coding_destroy(coding_ctx);
+            }
         }
         else if (strcmp(argv[2], "output") == 0)
         {
@@ -322,7 +351,10 @@ int main(int argc, char** argv)
             audio_output_run(audio_output);
 
             audio_output_destroy(audio_output);
-            coding_destroy(coding_ctx);
+            if (coding_ctx)
+            {
+                coding_destroy(coding_ctx);
+            }
         }
         else
         {

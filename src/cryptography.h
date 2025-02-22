@@ -19,7 +19,7 @@ along with netpw. If not, see <https://www.gnu.org/licenses/>.
 #ifndef NETPW_CRYPTOGRAPHY_H
 #define NETPW_CRYPTOGRAPHY_H
 
-int generate_rsa_key_pair(char** public_key, char** private_key);
-int x509_certificate_from_private_key(const char* private_key, char** certificate);
+void generate_rsa_key_pair(char** public_key, char** private_key);
+void x509_certificate_from_private_key(const char* private_key, char** certificate);
 
 #endif

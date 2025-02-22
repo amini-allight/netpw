@@ -6,7 +6,10 @@ A network socket acting as a source or sink for PipeWire streams.
 
 ## Dependencies
 
-- Boost
+- Boost (build only)
+- FFmpeg (runtime only, must be present on system path if stream compression is used)
+- OpenSSL
+- PipeWire
 
 ## Contributions
 
@@ -41,14 +44,30 @@ To run as a client:
 netpw client output -h 192.168.1.1 -p 8000
 ```
 
+To run as a server with stream compression (the arguments following the double dash are passed to a child instance of FFmpeg):
+
+```sh
+netpw server input -h 0.0.0.0 -p 8000 -- -f mpegts
+```
+
+To run as a client with stream compression (the arguments following the double dash are passed to a child instance of FFmpeg):
+
+```sh
+netpw client input -h 0.0.0.0 -p 8000 -- -f mpegts
+```
+
+Running the program without any arguments will display the help information:
+
+```sh
+netpw
+```
+
 ## State
 
 The program does not read or write any configuration files or state files (e.g. in `~/.local`) but such files may be created on its behalf (e.g. by PipeWire).
 
 ## Known Issues
 
-- Doesn't currently implement any encryption or authentication. Third parties are free to read and alter network streams or connect to the endpoint directly.
-- Doesn't support stream compression.
 - Doesn't support video or MIDI streams, only audio.
 - Currently relies on C++ & Boost for its lockless single-producer single-consumer queue.
 

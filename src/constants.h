@@ -24,4 +24,9 @@ along with netpw. If not, see <https://www.gnu.org/licenses/>.
 
 #define NETPW_QUEUE_SIZE (1024 * 1024)
 
+#define NETPW_IO_BUFFER_SIZE 4096
+
+#define READ_PIPE_INDEX 0
+#define WRITE_PIPE_INDEX 1
+
 #endif

@@ -24,7 +24,7 @@ along with netpw. If not, see <https://www.gnu.org/licenses/>.
 
 #define CHECK_POINTER(_expr) \
 { \
-    void* pointer = (_expr); \
+    const void* pointer = (_expr); \
     if (!pointer) \
     { \
         fprintf(stderr, "'%s' failed: %i\n", #_expr, errno); \
@@ -45,9 +45,23 @@ if (result != 0) \
     fprintf(stderr, "'%s' failed: %i\n", #_expr, result); \
 }
 
+#define CHECK_OK(_expr) \
+result = (_expr); \
+if (result <= 0) \
+{ \
+    fprintf(stderr, "'%s' failed: %i\n", #_expr, result); \
+}
+
+#define CHECK_SSL(_expr, _ssl) \
+result = (_expr); \
+if (result <= 0) \
+{ \
+    fprintf(stderr, "'%s' failed: %i\n", #_expr, SSL_get_error(_ssl, result)); \
+}
+
 #define CHECK_POINTER_FATAL(_expr) \
 { \
-    void* pointer = (_expr); \
+    const void* pointer = (_expr); \
     if (!pointer) \
     { \
         fprintf(stderr, "'%s' failed: %i\n", #_expr, errno); \
@@ -68,6 +82,22 @@ result = (_expr); \
 if (result != 0) \
 { \
     fprintf(stderr, "'%s' failed: %i\n", #_expr, result); \
+    exit(1); \
+}
+
+#define CHECK_OK_FATAL(_expr) \
+result = (_expr); \
+if (result <= 0) \
+{ \
+    fprintf(stderr, "'%s' failed: %i\n", #_expr, result); \
+    exit(1); \
+}
+
+#define CHECK_SSL_FATAL(_expr, _ssl) \
+result = (_expr); \
+if (result <= 0) \
+{ \
+    fprintf(stderr, "'%s' failed: %i\n", #_expr, SSL_get_error(_ssl, result)); \
     exit(1); \
 }
 

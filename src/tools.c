@@ -29,7 +29,7 @@ char* get_file(const char* path)
     int result;
     FILE* file;
 
-    CHECK_POINTER(file = fopen(path, "rb"));
+    CHECK_POINTER_FATAL(file = fopen(path, "rb"));
 
     int size;
 
@@ -37,7 +37,8 @@ char* get_file(const char* path)
     CHECK_ERRNO(size = ftell(file));
     CHECK_ERRNO(fseek(file, 0, SEEK_SET));
 
-    char* data = malloc(size * sizeof(char));
+    char* data = malloc((size + 1) * sizeof(char));
+    data[size] = 0;
 
     fread(data, size, sizeof(char), file);
 

@@ -19,6 +19,7 @@ along with netpw. If not, see <https://www.gnu.org/licenses/>.
 #include "coding.h"
 #include "error_handling.h"
 #include "tools.h"
+#include "constants.h"
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -27,15 +28,11 @@ along with netpw. If not, see <https://www.gnu.org/licenses/>.
 #include <sys/wait.h>
 #include <pthread.h>
 
-#define BUFFER_SIZE 1024
-#define READ_PIPE_INDEX 0
-#define WRITE_PIPE_INDEX 1
-
 struct coding_context
 {
     int child_in[2];
     int child_out[2];
-    unsigned char buffer[BUFFER_SIZE];
+    unsigned char buffer[NETPW_IO_BUFFER_SIZE];
     pid_t child;
     on_data_callback callback;
     pthread_t thread;
@@ -49,7 +46,7 @@ static void* coding_receive(void* arg)
 
     while (1)
     {
-        result = read(ctx->child_out[READ_PIPE_INDEX], ctx->buffer, BUFFER_SIZE);
+        result = read(ctx->child_out[READ_PIPE_INDEX], ctx->buffer, NETPW_IO_BUFFER_SIZE);
 
         if (result < 0)
         {

@@ -18,6 +18,7 @@ along with netpw. If not, see <https://www.gnu.org/licenses/>.
 */
 #include "server.h"
 #include "error_handling.h"
+#include "constants.h"
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -28,14 +29,18 @@ along with netpw. If not, see <https://www.gnu.org/licenses/>.
 #include <netdb.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <openssl/bio.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 
-#define BUFFER_SIZE 4096
+/* TODO: verification of client certificate doesn't work */
 
 struct client
 {
-    struct sockaddr_in addr;
+    SSL* ssl;
     int socket;
-    unsigned char buffer[BUFFER_SIZE];
+    struct sockaddr_in addr;
+    unsigned char buffer[NETPW_IO_BUFFER_SIZE];
     on_data_callback callback;
     int disconnected;
     pthread_t thread;
@@ -43,6 +48,7 @@ struct client
 
 struct server
 {
+    SSL_CTX* ssl_context;
     int socket;
     struct client** clients;
     int client_count;
@@ -59,11 +65,15 @@ static void* client_receive(void* arg)
 
     while (1)
     {
-        result = recv(client->socket, client->buffer, BUFFER_SIZE, 0);
+        result = SSL_read(client->ssl, client->buffer, NETPW_IO_BUFFER_SIZE);
 
-        if (result <= 0)
+        if (!BIO_should_retry(SSL_get_rbio(client->ssl)))
         {
             break;
+        }
+        else
+        {
+            continue;
         }
 
         client->callback(client->buffer, result);
@@ -85,6 +95,8 @@ static void client_destroy(struct client* client)
 
     CHECK_ERRNO(close(client->socket));
     CHECK_ERROR(pthread_join(client->thread, NULL));
+    CHECK_SSL(SSL_shutdown(client->ssl), client->ssl);
+    SSL_free(client->ssl);
     free(client);
 }
 
@@ -110,12 +122,16 @@ static void* server_accept(void* arg)
         inet_ntop(addr.sin_family, &addr.sin_addr, host, INET6_ADDRSTRLEN);
         unsigned short port = ntohs(addr.sin_port);
 
-        printf("received connection from [%s]:%i.\n", host, port);
-
         struct client* client = malloc(sizeof(struct client));
 
-        client->addr = addr;
+        CHECK_POINTER(client->ssl = SSL_new(server->ssl_context));
+        CHECK_OK(SSL_set_fd(client->ssl, result));
+        CHECK_SSL(SSL_accept(client->ssl), client->ssl);
+
+        printf("received connection from [%s]:%i.\n", host, port);
+
         client->socket = result;
+        client->addr = addr;
         client->callback = server->callback;
         client->disconnected = 0;
         CHECK_ERROR(pthread_create(&client->thread, NULL, client_receive, client));
@@ -173,7 +189,66 @@ struct server* server_init(
 
     struct server* server = malloc(sizeof(struct server));
 
-    CHECK_ERRNO_FATAL(server->socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP));
+    SSL_load_error_strings();
+    ERR_load_crypto_strings();
+    SSL_library_init();
+
+    const SSL_METHOD* method;
+
+    CHECK_POINTER_FATAL(method = TLS_server_method());
+
+    CHECK_POINTER_FATAL(server->ssl_context = SSL_CTX_new(method));
+
+    SSL_CTX_set_min_proto_version(server->ssl_context, TLS1_3_VERSION);
+    SSL_CTX_set_max_proto_version(server->ssl_context, 0);
+
+    if (ca_certificate)
+    {
+        BIO* certificate_reader;
+        CHECK_POINTER_FATAL(certificate_reader = BIO_new_mem_buf(ca_certificate, -1));
+
+        X509* certificate_object;
+        CHECK_POINTER_FATAL(certificate_object = PEM_read_bio_X509(certificate_reader, NULL, NULL, 0));
+        BIO_free_all(certificate_reader);
+
+        X509_STORE* store;
+        CHECK_POINTER_FATAL(store = X509_STORE_new());
+
+        CHECK_OK(X509_STORE_add_cert(store, certificate_object));
+
+        SSL_CTX_set_cert_store(server->ssl_context, store);
+
+        SSL_CTX_set_verify(server->ssl_context, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
+
+        SSL_CTX_set_verify_depth(server->ssl_context, 1);
+    }
+
+    if (certificate && private_key)
+    {
+        BIO* certificate_reader;
+        CHECK_POINTER_FATAL(certificate_reader = BIO_new_mem_buf(certificate, -1));
+
+        X509* certificate_object;
+        CHECK_POINTER_FATAL(certificate_object = PEM_read_bio_X509(certificate_reader, NULL, NULL, 0));
+        BIO_free_all(certificate_reader);
+
+        CHECK_OK_FATAL(SSL_CTX_use_certificate(server->ssl_context, certificate_object));
+        X509_free(certificate_object);
+
+        BIO* private_key_reader;
+        CHECK_POINTER_FATAL(private_key_reader = BIO_new_mem_buf(private_key, -1));
+
+        EVP_PKEY* private_key_object;
+        CHECK_POINTER_FATAL(private_key_object = PEM_read_bio_PrivateKey(private_key_reader, NULL, NULL, 0));
+        BIO_free_all(private_key_reader);
+
+        CHECK_OK_FATAL(SSL_CTX_use_PrivateKey(server->ssl_context, private_key_object));
+        EVP_PKEY_free(private_key_object);
+
+        CHECK_OK_FATAL(SSL_CTX_check_private_key(server->ssl_context));
+    }
+
+    CHECK_ERRNO_FATAL(server->socket = socket(AF_INET, SOCK_STREAM, 0));
 
     struct addrinfo* info = NULL;
 
@@ -216,7 +291,7 @@ void server_send(struct server* server, const unsigned char* data, int size)
             continue;
         }
 
-        CHECK_ERRNO(send(client->socket, data, size, 0));
+        CHECK_SSL(SSL_write(client->ssl, data, size), client->ssl);
     }
 
     CHECK_ERRNO(sem_post(&server->client_lock));
@@ -237,5 +312,6 @@ void server_destroy(struct server* server)
     }
     free(server->clients);
 
+    SSL_CTX_free(server->ssl_context);
     free(server);
 }
